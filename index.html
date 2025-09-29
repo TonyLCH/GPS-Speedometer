@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>GPS Speedometer</title>
+    <title>GPS-Speedometer</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -42,6 +42,14 @@
             <p id="status" class="text-lg text-gray-400">正在等待 GPS 訊號...</p>
         </div>
 
+        <!-- 新增：數據顯示區域 -->
+        <div class="mt-4 grid grid-cols-1 gap-4 text-center">
+            <div>
+                <p class="text-sm text-gray-500">定位精度</p>
+                <p id="accuracy" class="text-xl font-semibold text-gray-300">- 米</p>
+            </div>
+        </div>
+
         <!-- 單位切換按鈕 -->
         <div class="mt-6">
             <button id="unit-toggle" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105">
@@ -64,6 +72,7 @@
         const statusElement = document.getElementById('status');
         const unitToggleButton = document.getElementById('unit-toggle');
         const speedContainer = document.getElementById('speed-container');
+        const accuracyElement = document.getElementById('accuracy'); // 新增：獲取精度元素
 
         // 初始化狀態
         let currentUnit = 'km/h'; // 'km/h' 或 'mph'
@@ -132,11 +141,16 @@
                     // 如果裝置靜止或無法確定速度，可能回傳 null
                     speedMps = position.coords.speed || 0;
                     
+                    // 新增：更新定位精度顯示
+                    const accuracy = position.coords.accuracy;
+                    accuracyElement.textContent = `${accuracy.toFixed(1)} 米`;
+
                     updateDisplay();
                 },
                 (error) => {
                     // 獲取位置失敗
                     speedMps = 0;
+                    accuracyElement.textContent = '- 米'; // 新增：清空精度顯示
                     updateDisplay();
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
@@ -163,3 +177,4 @@
     </script>
 </body>
 </html>
+
