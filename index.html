@@ -76,14 +76,10 @@
             <p id="status" class="text-lg text-gray-400" data-lang-key="waitingForGPS">Waiting for GPS signal...</p>
         </div>
 
-        <div class="mt-4 grid grid-cols-2 gap-4 text-center">
+        <div class="mt-4 grid grid-cols-1 gap-4 text-center">
             <div>
                 <p class="text-sm text-gray-500" data-lang-key="accuracyLabel">Accuracy</p>
                 <p id="accuracy" class="text-xl font-semibold text-gray-300">- meters</p>
-            </div>
-            <div>
-                <p class="text-sm text-gray-500" data-lang-key="altitudeLabel">Altitude</p>
-                <p id="altitude" class="text-xl font-semibold text-gray-300">- meters</p>
             </div>
         </div>
 
@@ -108,8 +104,6 @@
         const unitToggleButton = document.getElementById('unit-toggle');
         const speedContainer = document.getElementById('speed-container');
         const accuracyElement = document.getElementById('accuracy');
-        // 新增: 海拔高度元素
-        const altitudeElement = document.getElementById('altitude');
         const langEnButton = document.getElementById('lang-en-btn');
         const langZhButton = document.getElementById('lang-zh-btn');
         const gpsSignalIndicator = document.getElementById('gps-signal-indicator');
@@ -121,7 +115,6 @@
         let speedMps = 0; // 速度（米/秒）
         let lastKnownAccuracy = null;
         let currentLanguage = 'en'; // 預設語言
-        let lastKnownAltitude = null; // 新增: 紀錄海拔高度
 
         // 語言翻譯文字
         const translations = {
@@ -134,15 +127,11 @@
                 'timeout': '⏳ Request for location timed out',
                 'unknownError': '❓ An unknown error occurred',
                 'accuracyLabel': 'Accuracy',
-                // 新增: 海拔標籤
-                'altitudeLabel': 'Altitude',
                 'switchToMPH': 'Switch to MPH',
                 'switchToKMH': 'Switch to KM/H',
                 'footerNote1': 'Please ensure location services (GPS) are enabled on your device.',
                 'footerNote2': 'Data is for reference only. Please drive safely.',
-                'metersUnit': 'meters',
-                // 新增: 縮寫單位
-                'metersUnitShort': 'm'
+                'metersUnit': 'meters'
             },
             'zh-Hant': {
                 'waitingForGPS': '正在等待 GPS 訊號...',
@@ -153,15 +142,11 @@
                 'timeout': '⏳ 請求位置資訊超時',
                 'unknownError': '❓ 發生未知錯誤',
                 'accuracyLabel': '定位精度',
-                // 新增: 海拔標籤
-                'altitudeLabel': '海拔高度',
                 'switchToMPH': '切換至 MPH',
                 'switchToKMH': '切換至 KM/H',
                 'footerNote1': '請確保已開啟裝置的定位服務 (GPS)。',
                 'footerNote2': '數據僅供參考，請安全駕駛。',
-                'metersUnit': '米',
-                // 新增: 縮寫單位
-                'metersUnitShort': '公尺'
+                'metersUnit': '米'
             }
         };
 
@@ -183,12 +168,10 @@
                 }
             });
 
-            // 更新狀態、精確度和海拔等動態文字
+            // 更新狀態和精確度等動態文字
             const currentStatusKey = statusElement.getAttribute('data-status-key') || 'waitingForGPS';
             updateStatusText(currentStatusKey);
             updateAccuracyDisplay(lastKnownAccuracy);
-            // 新增: 更新海拔顯示
-            updateAltitudeDisplay(lastKnownAltitude);
         }
 
         // 更新狀態文字 (使用 key)
@@ -245,17 +228,6 @@
                  accuracyElement.textContent = `- ${translations[currentLanguage].metersUnit}`;
                  // 沒有精度數據時，所有格子都保持默認灰色
              }
-        }
-
-        // 新增: 更新海拔高度顯示
-        function updateAltitudeDisplay(altitude) {
-            lastKnownAltitude = altitude;
-            if (altitude !== null) {
-                // 四捨五入到整數，並加上單位縮寫
-                altitudeElement.textContent = `${Math.round(altitude)} ${translations[currentLanguage].metersUnitShort}`;
-            } else {
-                altitudeElement.textContent = `- ${translations[currentLanguage].metersUnitShort}`;
-            }
         }
 
 
@@ -316,16 +288,13 @@
                 (position) => {
                     updateStatusText('gpsConnected');
                     speedMps = position.coords.speed || 0;
-                    // 使用新的函數更新精確度
+                    // 將 accuracy 傳入新的函數中
                     updateAccuracyDisplay(position.coords.accuracy);
-                    // 新增: 處理海拔高度
-                    updateAltitudeDisplay(position.coords.altitude);
                     updateDisplay();
                 },
                 (error) => {
                     speedMps = 0;
                     updateAccuracyDisplay(null); // 錯誤時重置信號圖標
-                    updateAltitudeDisplay(null); // 錯誤時重置海拔
                     updateDisplay();
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
