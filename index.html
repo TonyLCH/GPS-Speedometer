@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -7,11 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
     <style>
         /* 使用 Google Fonts 的 Orbitron 字體來模仿電子錶風格 */
         body {
-            font-family: 'Noto Sans TC', sans-serif;
+            /* 預設使用 Noto Sans，中文時會自動 fallback 到 Noto Sans TC */
+            font-family: 'Noto Sans', 'Noto Sans TC', sans-serif;
             touch-action: manipulation; /* 防止雙擊縮放 */
         }
         .speed-display {
@@ -22,45 +23,42 @@
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4 antialiased">
 
-    <!-- 主容器 -->
     <div class="w-full max-w-md mx-auto text-center">
 
-        <!-- 速度顯示圓盤 -->
+        <div class="mb-6 flex justify-center gap-4">
+            <button id="lang-en-btn" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-full text-sm transition-all duration-300 ease-in-out">English</button>
+            <button id="lang-zh-btn" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-full text-sm transition-all duration-300 ease-in-out">繁體中文</button>
+        </div>
+
         <div class="relative w-full aspect-square rounded-full bg-gray-800 border-8 border-gray-700 shadow-2xl flex flex-col items-center justify-center p-8 transition-colors duration-500" id="speed-container">
-            <!-- 速度數字 -->
             <div id="speed" class="speed-display text-8xl md:text-9xl font-bold text-cyan-400 transition-colors duration-500">
                 0
             </div>
-            <!-- 速度單位 -->
             <div id="unit" class="text-3xl md:text-4xl font-semibold text-cyan-300 transition-colors duration-500 mt-2">
                 km/h
             </div>
         </div>
 
-        <!-- 狀態訊息 -->
         <div class="mt-8 text-center h-10">
-            <p id="status" class="text-lg text-gray-400">正在等待 GPS 訊號...</p>
+            <p id="status" class="text-lg text-gray-400" data-lang-key="waitingForGPS">Waiting for GPS signal...</p>
         </div>
 
-        <!-- 新增：數據顯示區域 -->
         <div class="mt-4 grid grid-cols-1 gap-4 text-center">
             <div>
-                <p class="text-sm text-gray-500">定位精度</p>
-                <p id="accuracy" class="text-xl font-semibold text-gray-300">- 米</p>
+                <p class="text-sm text-gray-500" data-lang-key="accuracyLabel">Accuracy</p>
+                <p id="accuracy" class="text-xl font-semibold text-gray-300">- meters</p>
             </div>
         </div>
 
-        <!-- 單位切換按鈕 -->
         <div class="mt-6">
-            <button id="unit-toggle" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105">
-                切換至 MPH
+            <button id="unit-toggle" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105" data-lang-key="switchToMPH">
+                Switch to MPH
             </button>
         </div>
 
-        <!-- 頁腳 -->
         <footer class="mt-12 text-gray-500 text-sm">
-            <p>請確保已開啟裝置的定位服務 (GPS)。</p>
-            <p class="mt-1">數據僅供參考，請安全駕駛。</p>
+            <p data-lang-key="footerNote1">Please ensure location services (GPS) are enabled on your device.</p>
+            <p class="mt-1" data-lang-key="footerNote2">Data is for reference only. Please drive safely.</p>
         </footer>
 
     </div>
@@ -72,16 +70,101 @@
         const statusElement = document.getElementById('status');
         const unitToggleButton = document.getElementById('unit-toggle');
         const speedContainer = document.getElementById('speed-container');
-        const accuracyElement = document.getElementById('accuracy'); // 新增：獲取精度元素
+        const accuracyElement = document.getElementById('accuracy');
+        const langEnButton = document.getElementById('lang-en-btn');
+        const langZhButton = document.getElementById('lang-zh-btn');
 
         // 初始化狀態
         let currentUnit = 'km/h'; // 'km/h' 或 'mph'
         let speedMps = 0; // 速度（米/秒）
+        let lastKnownAccuracy = null;
+        let currentLanguage = 'en'; // 預設語言
+
+        // 語言翻譯文字
+        const translations = {
+            'en': {
+                'waitingForGPS': 'Waiting for GPS signal...',
+                'requestingPermission': 'Requesting location permission...',
+                'gpsConnected': '✅ GPS Signal Connected',
+                'permissionDenied': '❌ You have denied location permission',
+                'positionUnavailable': '⚠️ Location information is unavailable',
+                'timeout': '⏳ Request for location timed out',
+                'unknownError': '❓ An unknown error occurred',
+                'accuracyLabel': 'Accuracy',
+                'switchToMPH': 'Switch to MPH',
+                'switchToKMH': 'Switch to KM/H',
+                'footerNote1': 'Please ensure location services (GPS) are enabled on your device.',
+                'footerNote2': 'Data is for reference only. Please drive safely.',
+                'metersUnit': 'meters'
+            },
+            'zh-Hant': {
+                'waitingForGPS': '正在等待 GPS 訊號...',
+                'requestingPermission': '正在請求定位權限...',
+                'gpsConnected': '✅ GPS 訊號已連接',
+                'permissionDenied': '❌ 您已拒絕定位權限',
+                'positionUnavailable': '⚠️ 無法獲取當前位置資訊',
+                'timeout': '⏳ 請求位置資訊超時',
+                'unknownError': '❓ 發生未知錯誤',
+                'accuracyLabel': '定位精度',
+                'switchToMPH': '切換至 MPH',
+                'switchToKMH': '切換至 KM/H',
+                'footerNote1': '請確保已開啟裝置的定位服務 (GPS)。',
+                'footerNote2': '數據僅供參考，請安全駕駛。',
+                'metersUnit': '米'
+            }
+        };
+
+        // 設定語言的函數
+        function setLanguage(lang) {
+            currentLanguage = lang;
+            document.documentElement.lang = lang === 'zh-Hant' ? 'zh-Hant' : 'en';
+
+            // 更新所有帶有 data-lang-key 的靜態元素
+            document.querySelectorAll('[data-lang-key]').forEach(element => {
+                const key = element.getAttribute('data-lang-key');
+                if (translations[lang][key]) {
+                    // 對於單位切換按鈕，我們需要特殊處理，因為它的 key 會改變
+                    if (key === 'switchToMPH' || key === 'switchToKMH') {
+                         updateUnitButtonText();
+                    } else {
+                        element.textContent = translations[lang][key];
+                    }
+                }
+            });
+            
+            // 更新狀態和精確度等動態文字
+            const currentStatusKey = statusElement.getAttribute('data-status-key') || 'waitingForGPS';
+            updateStatusText(currentStatusKey);
+            updateAccuracyDisplay(lastKnownAccuracy);
+        }
+        
+        // 更新狀態文字 (使用 key)
+        function updateStatusText(key) {
+            statusElement.setAttribute('data-status-key', key);
+            statusElement.textContent = translations[currentLanguage][key] || '...';
+        }
+
+        // 更新單位按鈕文字
+        function updateUnitButtonText() {
+            const key = currentUnit === 'km/h' ? 'switchToMPH' : 'switchToKMH';
+            unitToggleButton.textContent = translations[currentLanguage][key];
+            unitToggleButton.setAttribute('data-lang-key', key);
+        }
+
+        // 更新精確度顯示
+        function updateAccuracyDisplay(accuracy) {
+             lastKnownAccuracy = accuracy;
+             if (accuracy !== null) {
+                 accuracyElement.textContent = `${accuracy.toFixed(1)} ${translations[currentLanguage].metersUnit}`;
+             } else {
+                 accuracyElement.textContent = `- ${translations[currentLanguage].metersUnit}`;
+             }
+        }
 
         // 更新顯示的函數
         function updateDisplay() {
             let displaySpeed = 0;
-            if (speedMps > 0.5) { // 只有在速度大於一個小閾值時才計算，避免靜止時的微小漂移
+            if (speedMps > 0.5) { // 避免靜止時的微小漂移
                 if (currentUnit === 'km/h') {
                     displaySpeed = speedMps * 3.6;
                 } else {
@@ -91,79 +174,69 @@
             
             // 根據速度改變顏色
             let colorClass = 'text-cyan-400';
+            let subColorClass = 'text-cyan-300';
             if (displaySpeed > 60 && displaySpeed <= 100) {
                 colorClass = 'text-yellow-400';
+                subColorClass = 'text-yellow-300';
             } else if (displaySpeed > 100) {
                 colorClass = 'text-red-500';
+                subColorClass = 'text-red-400';
             }
             
             // 移除舊的顏色 class，添加新的
             speedElement.className = speedElement.className.replace(/text-(cyan|yellow|red)-[0-9]{3}/g, '');
             speedElement.classList.add(colorClass);
-
             unitElement.className = unitElement.className.replace(/text-(cyan|yellow|red)-[0-9]{3}/g, '');
-            unitElement.classList.add(colorClass.replace('400','300').replace('500','400'));
+            unitElement.classList.add(subColorClass);
 
-
-            speedElement.textContent = displaySpeed.toFixed(0); // 顯示整數
+            speedElement.textContent = displaySpeed.toFixed(0);
             unitElement.textContent = currentUnit;
         }
 
-        // 切換單位的函數
+        // 語言按鈕事件監聽
+        langEnButton.addEventListener('click', () => setLanguage('en'));
+        langZhButton.addEventListener('click', () => setLanguage('zh-Hant'));
+
+        // 單位切換按鈕事件監聽
         unitToggleButton.addEventListener('click', () => {
-            if (currentUnit === 'km/h') {
-                currentUnit = 'mph';
-                unitToggleButton.textContent = '切換至 KM/H';
-            } else {
-                currentUnit = 'km/h';
-                unitToggleButton.textContent = '切換至 MPH';
-            }
+            currentUnit = (currentUnit === 'km/h') ? 'mph' : 'km/h';
+            updateUnitButtonText();
             updateDisplay();
         });
 
         // 檢查瀏覽器是否支援 Geolocation
         if ('geolocation' in navigator) {
-            statusElement.textContent = '正在請求定位權限...';
+            updateStatusText('requestingPermission');
 
             const options = {
-                enableHighAccuracy: true, // 請求高精度位置
-                timeout: 10000,           // 10秒超時
-                maximumAge: 0             // 不使用快取位置
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
             };
 
-            // 使用 watchPosition 持續獲取位置更新
             navigator.geolocation.watchPosition(
                 (position) => {
-                    // 成功獲取位置
-                    statusElement.textContent = '✅ GPS 訊號已連接';
-                    
-                    // position.coords.speed 回傳的是米/秒 (m/s)
-                    // 如果裝置靜止或無法確定速度，可能回傳 null
+                    updateStatusText('gpsConnected');
                     speedMps = position.coords.speed || 0;
-                    
-                    // 新增：更新定位精度顯示
-                    const accuracy = position.coords.accuracy;
-                    accuracyElement.textContent = `${accuracy.toFixed(1)} 米`;
-
+                    updateAccuracyDisplay(position.coords.accuracy);
                     updateDisplay();
                 },
                 (error) => {
-                    // 獲取位置失敗
                     speedMps = 0;
-                    accuracyElement.textContent = '- 米'; // 新增：清空精度顯示
+                    updateAccuracyDisplay(null);
                     updateDisplay();
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
-                            statusElement.textContent = '❌ 您已拒絕定位權限';
+                            updateStatusText('permissionDenied');
                             break;
                         case error.POSITION_UNAVAILABLE:
-                            statusElement.textContent = '⚠️ 無法獲取當前位置資訊';
+                            updateStatusText('positionUnavailable');
                             break;
                         case error.TIMEOUT:
-                            statusElement.textContent = '⏳ 請求位置資訊超時';
+                            updateStatusText('timeout');
                             break;
                         default:
-                            statusElement.textContent = '❓ 發生未知錯誤';
+                            updateStatusText('unknownError');
                             break;
                     }
                 },
@@ -171,10 +244,16 @@
             );
 
         } else {
-            statusElement.textContent = '❌ 您的瀏覽器不支援定位功能';
+            updateStatusText('unknownError'); // 可以為 "不支援" 建立一個新的 key
+            statusElement.textContent = '❌ Your browser does not support Geolocation';
             speedElement.textContent = 'ERR';
         }
+        
+        // 初始化頁面為預設語言
+        document.addEventListener('DOMContentLoaded', () => {
+            setLanguage('en');
+        });
+
     </script>
 </body>
 </html>
-
