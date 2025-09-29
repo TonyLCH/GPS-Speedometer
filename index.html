@@ -19,20 +19,30 @@
             font-family: 'Orbitron', sans-serif;
             text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
         }
-        /* 移除 Tailwind 預設的 border-gray-700，讓 JS 統一控制顏色 */
-        .speed-container-base {
-             border-color: #374151; /* 初始深灰色 */
+
+        /* GPS 信號圖標樣式 */
+        .gps-signal-icon {
+            display: flex;
+            align-items: flex-end; /* 讓格子底部對齊 */
+            height: 1.5rem; /* 固定圖標高度 */
         }
-        /* 定義新的邊框顏色類，以便在 JS 中切換 */
-        .border-accuracy-good {
-            border-color: #22d3ee !important; /* cyan-400 */
+        .gps-signal-bar {
+            width: 0.35rem; /* 格子寬度 */
+            margin-right: 0.15rem; /* 格子間距 */
+            background-color: #4b5563; /* 預設灰色 */
+            transition: background-color 0.3s ease-in-out, height 0.3s ease-in-out;
+            border-radius: 0.05rem; /* 輕微圓角 */
         }
-        .border-accuracy-medium {
-            border-color: #facc15 !important; /* yellow-400 */
-        }
-        .border-accuracy-poor {
-            border-color: #f87171 !important; /* red-400 */
-        }
+        /* 定義每個格子的不同高度 */
+        .gps-signal-bar:nth-child(1) { height: 0.5rem; }
+        .gps-signal-bar:nth-child(2) { height: 0.8rem; }
+        .gps-signal-bar:nth-child(3) { height: 1.1rem; }
+        .gps-signal-bar:nth-child(4) { height: 1.4rem; margin-right: 0; } /* 最後一個沒有右邊距 */
+
+        /* 活躍信號格子的顏色 */
+        .gps-signal-active-low { background-color: #f87171; /* red-400 */ }
+        .gps-signal-active-medium { background-color: #facc15; /* yellow-400 */ }
+        .gps-signal-active-high { background-color: #22d3ee; /* cyan-400 */ }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4 antialiased">
@@ -44,7 +54,15 @@
             <button id="lang-zh-btn" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-full text-sm transition-all duration-300 ease-in-out">繁體中文</button>
         </div>
 
-        <div class="relative w-full aspect-square rounded-full bg-gray-800 border-8 speed-container-base shadow-2xl flex flex-col items-center justify-center p-8 transition-colors duration-500" id="speed-container">
+        <div class="relative w-full aspect-square rounded-full bg-gray-800 border-8 border-gray-700 shadow-2xl flex flex-col items-center justify-center p-8 transition-colors duration-500" id="speed-container">
+
+            <div id="gps-signal-indicator" class="gps-signal-icon absolute top-8 right-8 md:top-10 md:right-10">
+                <div class="gps-signal-bar"></div>
+                <div class="gps-signal-bar"></div>
+                <div class="gps-signal-bar"></div>
+                <div class="gps-signal-bar"></div>
+            </div>
+
             <div id="speed" class="speed-display text-8xl md:text-9xl font-bold text-cyan-400 transition-colors duration-500">
                 0
             </div>
@@ -87,6 +105,9 @@
         const accuracyElement = document.getElementById('accuracy');
         const langEnButton = document.getElementById('lang-en-btn');
         const langZhButton = document.getElementById('lang-zh-btn');
+        const gpsSignalIndicator = document.getElementById('gps-signal-indicator');
+        const gpsSignalBars = gpsSignalIndicator.querySelectorAll('.gps-signal-bar');
+
 
         // 初始化狀態
         let currentUnit = 'km/h'; // 'km/h' 或 'mph'
@@ -165,34 +186,50 @@
             unitToggleButton.setAttribute('data-lang-key', key);
         }
 
-        // --- 新增：更新精確度顯示和顏色邏輯 ---
+        // --- 新增：更新精確度顯示和信號圖標邏輯 ---
         function updateAccuracyDisplay(accuracy) {
              lastKnownAccuracy = accuracy;
-             // 移除所有精度邊框顏色類
-             speedContainer.classList.remove('border-accuracy-good', 'border-accuracy-medium', 'border-accuracy-poor');
+
+             // 重置所有信號格子的顏色
+             gpsSignalBars.forEach(bar => {
+                 bar.classList.remove('gps-signal-active-low', 'gps-signal-active-medium', 'gps-signal-active-high');
+                 bar.style.backgroundColor = ''; // 清除JS設置的顏色，回歸CSS預設
+             });
+
 
              if (accuracy !== null && accuracy >= 0) {
                  accuracyElement.textContent = `${accuracy.toFixed(1)} ${translations[currentLanguage].metersUnit}`;
 
-                 // 根據精度值設置邊框顏色
-                 if (accuracy <= 10) {
-                     // 10 米以內：優異（藍綠色）
-                     speedContainer.classList.add('border-accuracy-good');
-                 } else if (accuracy > 10 && accuracy <= 30) {
-                     // 10-30 米：良好（黃色）
-                     speedContainer.classList.add('border-accuracy-medium');
-                 } else {
-                     // 30 米以上：較差（紅色）
-                     speedContainer.classList.add('border-accuracy-poor');
+                 let activeBars = 0;
+                 let signalColorClass = '';
+
+                 // 根據精度值設置信號格數和顏色
+                 if (accuracy <= 5) { // 5 米以內：最佳 (4格，藍綠色)
+                     activeBars = 4;
+                     signalColorClass = 'gps-signal-active-high';
+                 } else if (accuracy <= 15) { // 5-15 米：優異 (3格，藍綠色)
+                     activeBars = 3;
+                     signalColorClass = 'gps-signal-active-high';
+                 } else if (accuracy <= 30) { // 15-30 米：良好 (2格，黃色)
+                     activeBars = 2;
+                     signalColorClass = 'gps-signal-active-medium';
+                 } else { // 30 米以上：較差 (1格，紅色)
+                     activeBars = 1;
+                     signalColorClass = 'gps-signal-active-low';
+                 }
+
+                 // 點亮對應格數的信號
+                 for (let i = 0; i < activeBars; i++) {
+                     gpsSignalBars[i].classList.add(signalColorClass);
                  }
 
              } else {
                  accuracyElement.textContent = `- ${translations[currentLanguage].metersUnit}`;
-                 // 如果沒有精度數據，保留基礎顏色
-                 speedContainer.classList.add('speed-container-base');
+                 // 沒有精度數據時，所有格子都保持默認灰色 (或者隱藏圖標，這裡選擇顯示灰色)
+                 // 不做任何額外操作，讓格子保持默認的 background-color: #4b5563;
              }
         }
-        // --- 結束：更新精確度顯示和顏色邏輯 ---
+        // --- 結束：更新精確度顯示和信號圖標邏輯 ---
 
 
         // 更新顯示的函數
@@ -258,7 +295,7 @@
                 },
                 (error) => {
                     speedMps = 0;
-                    updateAccuracyDisplay(null);
+                    updateAccuracyDisplay(null); // 錯誤時重置信號圖標
                     updateDisplay();
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
