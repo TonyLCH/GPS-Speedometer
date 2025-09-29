@@ -82,14 +82,8 @@
                 <p id="accuracy" class="text-xl font-semibold text-gray-300">- meters</p>
             </div>
             <div>
-                <p class="text-sm text-gray-500" data-lang-key="latitudeLabel">Latitude</p>
-                <p id="latitude" class="text-xl font-semibold text-gray-300">-</p>
-            </div>
-        </div>
-        <div class="mt-4 grid grid-cols-1 gap-4 text-center">
-             <div>
-                <p class="text-sm text-gray-500" data-lang-key="longitudeLabel">Longitude</p>
-                <p id="longitude" class="text-xl font-semibold text-gray-300">-</p>
+                <p class="text-sm text-gray-500" data-lang-key="altitudeLabel">Altitude</p>
+                <p id="altitude" class="text-xl font-semibold text-gray-300">- meters</p>
             </div>
         </div>
 
@@ -114,10 +108,8 @@
         const unitToggleButton = document.getElementById('unit-toggle');
         const speedContainer = document.getElementById('speed-container');
         const accuracyElement = document.getElementById('accuracy');
-        // --- 新增的位置元素 ---
-        const latElement = document.getElementById('latitude');
-        const lonElement = document.getElementById('longitude');
-        // -----------------------
+        // 新增: 海拔高度元素
+        const altitudeElement = document.getElementById('altitude');
         const langEnButton = document.getElementById('lang-en-btn');
         const langZhButton = document.getElementById('lang-zh-btn');
         const gpsSignalIndicator = document.getElementById('gps-signal-indicator');
@@ -129,6 +121,7 @@
         let speedMps = 0; // 速度（米/秒）
         let lastKnownAccuracy = null;
         let currentLanguage = 'en'; // 預設語言
+        let lastKnownAltitude = null; // 新增: 紀錄海拔高度
 
         // 語言翻譯文字
         const translations = {
@@ -141,13 +134,15 @@
                 'timeout': '⏳ Request for location timed out',
                 'unknownError': '❓ An unknown error occurred',
                 'accuracyLabel': 'Accuracy',
-                'latitudeLabel': 'Latitude',      // 新增
-                'longitudeLabel': 'Longitude',    // 新增
+                // 新增: 海拔標籤
+                'altitudeLabel': 'Altitude',
                 'switchToMPH': 'Switch to MPH',
                 'switchToKMH': 'Switch to KM/H',
                 'footerNote1': 'Please ensure location services (GPS) are enabled on your device.',
                 'footerNote2': 'Data is for reference only. Please drive safely.',
-                'metersUnit': 'meters'
+                'metersUnit': 'meters',
+                // 新增: 縮寫單位
+                'metersUnitShort': 'm'
             },
             'zh-Hant': {
                 'waitingForGPS': '正在等待 GPS 訊號...',
@@ -158,13 +153,15 @@
                 'timeout': '⏳ 請求位置資訊超時',
                 'unknownError': '❓ 發生未知錯誤',
                 'accuracyLabel': '定位精度',
-                'latitudeLabel': '緯度',        // 新增
-                'longitudeLabel': '經度',       // 新增
+                // 新增: 海拔標籤
+                'altitudeLabel': '海拔高度',
                 'switchToMPH': '切換至 MPH',
                 'switchToKMH': '切換至 KM/H',
                 'footerNote1': '請確保已開啟裝置的定位服務 (GPS)。',
                 'footerNote2': '數據僅供參考，請安全駕駛。',
-                'metersUnit': '米'
+                'metersUnit': '米',
+                // 新增: 縮寫單位
+                'metersUnitShort': '公尺'
             }
         };
 
@@ -176,7 +173,7 @@
             // 更新所有帶有 data-lang-key 的靜態元素
             document.querySelectorAll('[data-lang-key]').forEach(element => {
                 const key = element.getAttribute('data-lang-key');
-                if (translations[lang] && translations[lang][key]) {
+                if (translations[lang][key]) {
                     // 對於單位切換按鈕，我們需要特殊處理，因為它的 key 會改變
                     if (key === 'switchToMPH' || key === 'switchToKMH') {
                          updateUnitButtonText();
@@ -186,12 +183,12 @@
                 }
             });
 
-            // 更新狀態和精確度等動態文字
+            // 更新狀態、精確度和海拔等動態文字
             const currentStatusKey = statusElement.getAttribute('data-status-key') || 'waitingForGPS';
             updateStatusText(currentStatusKey);
             updateAccuracyDisplay(lastKnownAccuracy);
-            // 由於沒有保存坐標，這裡呼叫一次更新函數以確保語言同步
-            updateLocationDisplay(null, null); 
+            // 新增: 更新海拔顯示
+            updateAltitudeDisplay(lastKnownAltitude);
         }
 
         // 更新狀態文字 (使用 key)
@@ -206,16 +203,6 @@
             unitToggleButton.textContent = translations[currentLanguage][key];
             unitToggleButton.setAttribute('data-lang-key', key);
         }
-
-        // --- 新增函數：更新位置顯示 ---
-        function updateLocationDisplay(latitude, longitude) {
-            // 保留小數點後 5 位，如果數據為 null 則顯示 '-'
-            const displayValue = (value) => value !== null ? value.toFixed(5) : '-';
-            
-            latElement.textContent = displayValue(latitude);
-            lonElement.textContent = displayValue(longitude);
-        }
-        // ---------------------------------
 
         // 更新精確度顯示和信號圖標邏輯
         function updateAccuracyDisplay(accuracy) {
@@ -258,6 +245,17 @@
                  accuracyElement.textContent = `- ${translations[currentLanguage].metersUnit}`;
                  // 沒有精度數據時，所有格子都保持默認灰色
              }
+        }
+
+        // 新增: 更新海拔高度顯示
+        function updateAltitudeDisplay(altitude) {
+            lastKnownAltitude = altitude;
+            if (altitude !== null) {
+                // 四捨五入到整數，並加上單位縮寫
+                altitudeElement.textContent = `${Math.round(altitude)} ${translations[currentLanguage].metersUnitShort}`;
+            } else {
+                altitudeElement.textContent = `- ${translations[currentLanguage].metersUnitShort}`;
+            }
         }
 
 
@@ -317,24 +315,17 @@
             navigator.geolocation.watchPosition(
                 (position) => {
                     updateStatusText('gpsConnected');
-                    const coords = position.coords;
-                    
-                    speedMps = coords.speed || 0;
-                    
-                    // 更新精確度
-                    updateAccuracyDisplay(coords.accuracy);
-
-                    // --- NEW: 更新位置資訊 ---
-                    updateLocationDisplay(coords.latitude, coords.longitude);
-                    // ---------------------------
-
-                    // 更新速度顯示
+                    speedMps = position.coords.speed || 0;
+                    // 使用新的函數更新精確度
+                    updateAccuracyDisplay(position.coords.accuracy);
+                    // 新增: 處理海拔高度
+                    updateAltitudeDisplay(position.coords.altitude);
                     updateDisplay();
                 },
                 (error) => {
                     speedMps = 0;
                     updateAccuracyDisplay(null); // 錯誤時重置信號圖標
-                    updateLocationDisplay(null, null); // 錯誤時重置位置顯示
+                    updateAltitudeDisplay(null); // 錯誤時重置海拔
                     updateDisplay();
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
@@ -355,12 +346,9 @@
             );
 
         } else {
-            // 瀏覽器不支援 Geolocation 的處理
-            updateStatusText('unknownError'); 
+            updateStatusText('unknownError'); // 可以為 "不支援" 建立一個新的 key
             statusElement.textContent = '❌ Your browser does not support Geolocation';
             speedElement.textContent = 'ERR';
-            latElement.textContent = '-';
-            lonElement.textContent = '-';
         }
 
         // 初始化頁面為預設語言
