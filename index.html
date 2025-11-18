@@ -8,44 +8,37 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Noto+Sans+TC:wght@400;700&family=Noto+Sans:wght@400;700&display=swap" rel="stylesheet">
-    <script async src="https://cse.google.com/cse.js?cx=632d4c14e5ede486b"></script>
-    <div class="gcse-search"></div>
     <style>
-        /* 使用 Google Fonts 的 Orbitron 字體來模仿電子錶風格 */
         body {
-            /* 預設使用 Noto Sans，中文時會自動 fallback 到 Noto Sans TC */
             font-family: 'Noto Sans', 'Noto Sans TC', sans-serif;
-            touch-action: manipulation; /* 防止雙擊縮放 */
+            touch-action: manipulation;
         }
         .speed-display {
             font-family: 'Orbitron', sans-serif;
             text-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
         }
 
-        /* GPS 信號圖標樣式 */
         .gps-signal-icon {
             display: flex;
-            align-items: flex-end; /* 讓格子底部對齊 */
-            height: 1.5rem; /* 固定圖標高度 */
-            z-index: 10; /* 確保圖標在圓圈邊框之上 */
+            align-items: flex-end;
+            height: 1.5rem;
+            z-index: 10;
         }
         .gps-signal-bar {
-            width: 0.35rem; /* 格子寬度 */
-            margin-right: 0.15rem; /* 格子間距 */
-            background-color: #4b5563; /* 預設灰色 */
+            width: 0.35rem;
+            margin-right: 0.15rem;
+            background-color: #4b5563;
             transition: background-color 0.3s ease-in-out, height 0.3s ease-in-out;
-            border-radius: 0.05rem; /* 輕微圓角 */
+            border-radius: 0.05rem;
         }
-        /* 定義每個格子的不同高度 */
         .gps-signal-bar:nth-child(1) { height: 0.5rem; }
         .gps-signal-bar:nth-child(2) { height: 0.8rem; }
         .gps-signal-bar:nth-child(3) { height: 1.1rem; }
-        .gps-signal-bar:nth-child(4) { height: 1.4rem; margin-right: 0; } /* 最後一個沒有右邊距 */
+        .gps-signal-bar:nth-child(4) { height: 1.4rem; margin-right: 0; }
 
-        /* 活躍信號格子的顏色 */
-        .gps-signal-active-low { background-color: #f87171; /* red-400 */ }
-        .gps-signal-active-medium { background-color: #facc15; /* yellow-400 */ }
-        .gps-signal-active-high { background-color: #22d3ee; /* cyan-400 */ }
+        .gps-signal-active-low { background-color: #f87171; }
+        .gps-signal-active-medium { background-color: #facc15; }
+        .gps-signal-active-high { background-color: #22d3ee; }
     </style>
 </head>
 <body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4 antialiased">
@@ -57,7 +50,7 @@
             <button id="lang-zh-btn" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-2 px-4 rounded-full text-sm transition-all duration-300 ease-in-out">繁體中文</button>
         </div>
 
-        <div class="relative w-full aspect-square rounded-full bg-gray-800 border-8 border-gray-700 shadow-2xl flex flex-col items-center justify-center p-8 transition-colors duration-500" id="speed-container">
+        <div class="relative w-full aspect-square rounded-full bg-gray-800 border-8 border-gray-700 shadow-2xl flex flex-col items-center justify-center p-8 transition-colors duration-500" id="speed-c[...]
 
             <div id="gps-signal-indicator" class="gps-signal-icon absolute top-8 left-1/2 transform -translate-x-1/2">
                 <div class="gps-signal-bar"></div>
@@ -86,7 +79,7 @@
         </div>
 
         <div class="mt-6">
-            <button id="unit-toggle" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105" data-lang-key="switchToMPH">
+            <button id="unit-toggle" class="bg-gray-700 hover:bg-cyan-600 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 ease-in-out transform hover:scale-105" data-[...]
                 Switch to MPH
             </button>
         </div>
@@ -99,7 +92,6 @@
     </div>
 
     <script>
-        // 獲取頁面元素
         const speedElement = document.getElementById('speed');
         const unitElement = document.getElementById('unit');
         const statusElement = document.getElementById('status');
@@ -111,14 +103,11 @@
         const gpsSignalIndicator = document.getElementById('gps-signal-indicator');
         const gpsSignalBars = gpsSignalIndicator.querySelectorAll('.gps-signal-bar');
 
-
-        // 初始化狀態
-        let currentUnit = 'km/h'; // 'km/h' 或 'mph'
-        let speedMps = 0; // 速度（米/秒）
+        let currentUnit = 'km/h';
+        let speedMps = 0;
         let lastKnownAccuracy = null;
-        let currentLanguage = 'en'; // 預設語言
+        let currentLanguage = 'en';
 
-        // 語言翻譯文字
         const translations = {
             'en': {
                 'waitingForGPS': 'Waiting for GPS signal...',
@@ -152,16 +141,13 @@
             }
         };
 
-        // 設定語言的函數
         function setLanguage(lang) {
             currentLanguage = lang;
             document.documentElement.lang = lang === 'zh-Hant' ? 'zh-Hant' : 'en';
 
-            // 更新所有帶有 data-lang-key 的靜態元素
             document.querySelectorAll('[data-lang-key]').forEach(element => {
                 const key = element.getAttribute('data-lang-key');
                 if (translations[lang][key]) {
-                    // 對於單位切換按鈕，我們需要特殊處理，因為它的 key 會改變
                     if (key === 'switchToMPH' || key === 'switchToKMH') {
                          updateUnitButtonText();
                     } else {
@@ -170,35 +156,29 @@
                 }
             });
 
-            // 更新狀態和精確度等動態文字
             const currentStatusKey = statusElement.getAttribute('data-status-key') || 'waitingForGPS';
             updateStatusText(currentStatusKey);
             updateAccuracyDisplay(lastKnownAccuracy);
         }
 
-        // 更新狀態文字 (使用 key)
         function updateStatusText(key) {
             statusElement.setAttribute('data-status-key', key);
             statusElement.textContent = translations[currentLanguage][key] || '...';
         }
 
-        // 更新單位按鈕文字
         function updateUnitButtonText() {
             const key = currentUnit === 'km/h' ? 'switchToMPH' : 'switchToKMH';
             unitToggleButton.textContent = translations[currentLanguage][key];
             unitToggleButton.setAttribute('data-lang-key', key);
         }
 
-        // 更新精確度顯示和信號圖標邏輯
         function updateAccuracyDisplay(accuracy) {
              lastKnownAccuracy = accuracy;
 
-             // 重置所有信號格子的顏色
              gpsSignalBars.forEach(bar => {
                  bar.classList.remove('gps-signal-active-low', 'gps-signal-active-medium', 'gps-signal-active-high');
-                 bar.style.backgroundColor = ''; // 清除JS設置的顏色，回歸CSS預設
+                 bar.style.backgroundColor = '';
              });
-
 
              if (accuracy !== null && accuracy >= 0) {
                  accuracyElement.textContent = `${accuracy.toFixed(1)} ${translations[currentLanguage].metersUnit}`;
@@ -206,37 +186,32 @@
                  let activeBars = 0;
                  let signalColorClass = '';
 
-                 // 根據精度值設置信號格數和顏色
-                 if (accuracy <= 5) { // 5 米以內：最佳 (4格，藍綠色)
+                 if (accuracy <= 5) {
                      activeBars = 4;
                      signalColorClass = 'gps-signal-active-high';
-                 } else if (accuracy <= 15) { // 5-15 米：優異 (3格，藍綠色)
+                 } else if (accuracy <= 15) {
                      activeBars = 3;
                      signalColorClass = 'gps-signal-active-high';
-                 } else if (accuracy <= 30) { // 15-30 米：良好 (2格，黃色)
+                 } else if (accuracy <= 30) {
                      activeBars = 2;
                      signalColorClass = 'gps-signal-active-medium';
-                 } else { // 30 米以上：較差 (1格，紅色)
+                 } else {
                      activeBars = 1;
                      signalColorClass = 'gps-signal-active-low';
                  }
 
-                 // 點亮對應格數的信號
                  for (let i = 0; i < activeBars; i++) {
                      gpsSignalBars[i].classList.add(signalColorClass);
                  }
 
              } else {
                  accuracyElement.textContent = `- ${translations[currentLanguage].metersUnit}`;
-                 // 沒有精度數據時，所有格子都保持默認灰色
              }
         }
 
-
-        // 更新顯示的函數
         function updateDisplay() {
             let displaySpeed = 0;
-            if (speedMps > 0.5) { // 避免靜止時的微小漂移
+            if (speedMps > 0.5) {
                 if (currentUnit === 'km/h') {
                     displaySpeed = speedMps * 3.6;
                 } else {
@@ -244,7 +219,6 @@
                 }
             }
 
-            // 根據速度改變顏色
             let colorClass = 'text-cyan-400';
             let subColorClass = 'text-cyan-300';
             if (displaySpeed > 60 && displaySpeed <= 100) {
@@ -255,7 +229,6 @@
                 subColorClass = 'text-red-400';
             }
 
-            // 移除舊的顏色 class，添加新的
             speedElement.className = speedElement.className.replace(/text-(cyan|yellow|red)-[0-9]{3}/g, '');
             speedElement.classList.add(colorClass);
             unitElement.className = unitElement.className.replace(/text-(cyan|yellow|red)-[0-9]{3}/g, '');
@@ -265,18 +238,15 @@
             unitElement.textContent = currentUnit;
         }
 
-        // 語言按鈕事件監聽
         langEnButton.addEventListener('click', () => setLanguage('en'));
         langZhButton.addEventListener('click', () => setLanguage('zh-Hant'));
 
-        // 單位切換按鈕事件監聽
         unitToggleButton.addEventListener('click', () => {
             currentUnit = (currentUnit === 'km/h') ? 'mph' : 'km/h';
             updateUnitButtonText();
             updateDisplay();
         });
 
-        // 檢查瀏覽器是否支援 Geolocation
         if ('geolocation' in navigator) {
             updateStatusText('requestingPermission');
 
@@ -290,13 +260,12 @@
                 (position) => {
                     updateStatusText('gpsConnected');
                     speedMps = position.coords.speed || 0;
-                    // 將 accuracy 傳入新的函數中
                     updateAccuracyDisplay(position.coords.accuracy);
                     updateDisplay();
                 },
                 (error) => {
                     speedMps = 0;
-                    updateAccuracyDisplay(null); // 錯誤時重置信號圖標
+                    updateAccuracyDisplay(null);
                     updateDisplay();
                     switch (error.code) {
                         case error.PERMISSION_DENIED:
@@ -317,12 +286,11 @@
             );
 
         } else {
-            updateStatusText('unknownError'); // 可以為 "不支援" 建立一個新的 key
+            updateStatusText('unknownError');
             statusElement.textContent = '❌ Your browser does not support Geolocation';
             speedElement.textContent = 'ERR';
         }
 
-        // 初始化頁面為預設語言
         document.addEventListener('DOMContentLoaded', () => {
             setLanguage('en');
         });
